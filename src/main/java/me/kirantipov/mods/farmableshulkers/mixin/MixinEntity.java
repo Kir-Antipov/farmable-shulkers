@@ -23,12 +23,12 @@ public abstract class MixinEntity implements TeleportableEntity {
     public float pitch;
 
     @Shadow
-    public abstract void setPositionAndAngles(double x, double y, double z, float yaw, float pitch);
+    public abstract void updatePositionAndAngles(double x, double y, double z, float yaw, float pitch);
 
     /**
      * {@inheritDoc}
      */
     public void refreshPositionAfterTeleport(double x, double y, double z) {
-        this.setPositionAndAngles(x, y, z, this.yaw, this.pitch);
+        this.updatePositionAndAngles(x, y, z, this.yaw, this.pitch);
     }
 }

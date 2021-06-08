@@ -104,7 +104,7 @@ public abstract class MixinShulkerEntity extends GolemEntity implements Colorabl
      * @param z Z coordinate.
      * @param ci The callback info.
      */
-    @Inject(method = "setPosition(DDD)V", at = @At(value = "HEAD"))
+    @Inject(method = "updatePosition(DDD)V", at = @At(value = "HEAD"))
     protected void setAttachedBlock(double x, double y, double z, CallbackInfo ci) {
         if (this.dataTracker != null && this.age == 0) {
             Optional<BlockPos> pos = this.dataTracker.get(ATTACHED_BLOCK);
@@ -124,7 +124,7 @@ public abstract class MixinShulkerEntity extends GolemEntity implements Colorabl
         return new DirectionalBlockPos(pos.getX() + dX, pos.getY() + dY, pos.getZ() + dZ, direction);
     }
 
-    @Redirect(method = "method_7127", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;doesBlockHaveSolidTopSurface(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;)Z"))
+    @Redirect(method = "method_7127", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;isTopSolid(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;)Z"))
     protected boolean canAttachTo(World world, BlockPos blockPos, Entity entity) {
         if (World.isHeightInvalid(blockPos)) {
             return false;
