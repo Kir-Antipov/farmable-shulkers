@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "farmableshulkers",
+  "version": "${version}",
+  "name": "Farmable Shulkers",
+  "description": "Backports shulker behavior from 1.17 to older versions.",
+  "authors": [
+    "Kir_Antipov"
+  ],
+  "contact": {
+    "website": "https://github.com/Kir-Antipov/farmable-shulkers",
+    "repo": "https://github.com/Kir-Antipov/farmable-shulkers",
+    "issues": "https://github.com/Kir-Antipov/farmable-shulkers/issues/new/choose"
+  },
+  "license": "MIT",
+  "icon": "assets/farmableshulkers/icon.png",
+  "environment": "*",
+  "entrypoints": {},
+  "mixins": [
+    "farmableshulkers.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": "${fabric}",
+    "minecraft": "${minecraft}"
+  }
+}

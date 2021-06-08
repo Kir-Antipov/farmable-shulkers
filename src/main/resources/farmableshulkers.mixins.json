@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "me.kirantipov.mods.farmableshulkers.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinEntity",
+    "MixinShulkerEntity",
+    "MixinShulkerBulletEntity"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
