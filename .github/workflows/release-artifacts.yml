@@ -1,0 +1,37 @@
+name: release-artifacts
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Extract release tag
+        id: release_tag
+        run: echo ::set-output name=RELEASE_TAG::${GITHUB_REF#refs/tags/}
+      - name: Make release tag an environment variable
+        env:
+          RELEASE_TAG: ${{ steps.release_tag.outputs.RELEASE_TAG }}
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2.1.0
+        with:
+          distribution: 'adopt'
+          java-version: 8
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build artifacts
+        run: ./gradlew clean build
+
+      - name: Upload assets to GitHub
+        uses: AButler/upload-release-assets@v2.0
+        with:
+          files: 'build/libs/*'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
