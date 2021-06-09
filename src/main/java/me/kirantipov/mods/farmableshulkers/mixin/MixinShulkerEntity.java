@@ -62,8 +62,10 @@ public abstract class MixinShulkerEntity extends GolemEntity implements Colorabl
     /**
      * {@inheritDoc}
      */
-    @Shadow
-    public abstract DyeColor getColor();
+    public DyeColor getColor() {
+        Byte colorByte = this.dataTracker.get(COLOR);
+        return colorByte != 16 && colorByte <= 15 ? DyeColor.byId(colorByte) : null;
+    }
 
     /**
      * {@inheritDoc}
@@ -130,7 +132,7 @@ public abstract class MixinShulkerEntity extends GolemEntity implements Colorabl
                     return;
                 }
 
-                DyeColor dyeColor = this.getColor();
+                DyeColor dyeColor = ((ColorableEntity)this).getColor();
                 if (dyeColor != null) {
                     ((ColorableEntity)shulkerEntity).setColor(dyeColor);
                 }
