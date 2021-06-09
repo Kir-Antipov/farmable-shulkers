@@ -7,7 +7,7 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
 def loaderDependencyVersion = ">=${project.loader_version.split(/\+/)[0]}"
-def minecraftDependencyVersion = project.minecraft_version.split(/[+ -]/)[0].replaceAll(/\.\d+$/, ".x")
+def minecraftDependencyVersion = project.minecraft_version.split(/[+ -]/)[0].replaceFirst(/^(\d+\.\d+)((?:\.\d+)|)$/, '$1.x')
 
 group = project.maven_group
 version = "${project.mod_version}${getVersionMetadata()}"
