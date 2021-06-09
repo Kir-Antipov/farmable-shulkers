@@ -4,9 +4,7 @@
   "package": "me.kirantipov.mods.farmableshulkers.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "MixinEntity",
-    "MixinShulkerEntity",
-    "MixinShulkerBulletEntity"
+    "MixinShulkerEntity"
   ],
   "injectors": {
     "defaultRequire": 1
