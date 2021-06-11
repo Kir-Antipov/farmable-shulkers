@@ -1,12 +1,12 @@
 package me.kirantipov.mods.farmableshulkers.mixin;
 
 import me.kirantipov.mods.farmableshulkers.entity.ColorableEntity;
-import me.kirantipov.mods.farmableshulkers.util.math.DirectionalBlockPos;
 import me.kirantipov.mods.farmableshulkers.entity.TeleportableEntity;
-import net.minecraft.block.Block;
+import me.kirantipov.mods.farmableshulkers.util.math.DirectionalBlockPos;
+import me.kirantipov.mods.farmableshulkers.util.math.WorldHelper;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityContext;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.TrackedData;
@@ -17,10 +17,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkStatus;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -53,6 +50,11 @@ public abstract class MixinShulkerEntity extends GolemEntity implements Colorabl
     @Final
     @Shadow
     protected static TrackedData<Optional<BlockPos>> ATTACHED_BLOCK;
+
+
+    protected MixinShulkerEntity(EntityType<? extends GolemEntity> entityType, World world) {
+        super(entityType, world);
+    }
 
 
     @Shadow
@@ -91,12 +93,6 @@ public abstract class MixinShulkerEntity extends GolemEntity implements Colorabl
         this.dataTracker.set(COLOR, (byte)color.getId());
     }
 
-
-    protected MixinShulkerEntity(EntityType<? extends GolemEntity> entityType, World world) {
-        super(entityType, world);
-    }
-
-
     /**
      * We already have a property that reflects a position of the entity.
      * Why not add another one and then forget to process it?
@@ -117,30 +113,112 @@ public abstract class MixinShulkerEntity extends GolemEntity implements Colorabl
         }
     }
 
-    @Redirect(method = "method_7127", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/BlockPos;offset(Lnet/minecraft/util/math/Direction;)Lnet/minecraft/util/math/BlockPos;"))
+    /**
+     * Preserves the direction of the BlockPos offset for future use.
+     *
+     * @param pos Initial position.
+     * @param direction The offset direction.
+     *
+     * @return Offset position.
+     */
+    @Redirect(method = { "tick", "method_7127" }, at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/BlockPos;offset(Lnet/minecraft/util/math/Direction;)Lnet/minecraft/util/math/BlockPos;"))
     protected BlockPos preserveBlockPosDirection(BlockPos pos, Direction direction) {
-        int dX = direction.getOffsetX();
-        int dY = direction.getOffsetY();
-        int dZ = direction.getOffsetZ();
-        direction = direction.getOpposite();
-        return new DirectionalBlockPos(pos.getX() + dX, pos.getY() + dY, pos.getZ() + dZ, direction);
+        return DirectionalBlockPos.offset(pos, direction);
     }
 
-    @Redirect(method = "method_7127", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;isTopSolid(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;)Z"))
-    protected boolean canAttachTo(World world, BlockPos blockPos, Entity entity) {
-        if (World.isHeightInvalid(blockPos)) {
-            return false;
-        }
-
-        Chunk chunk = world.getChunk(blockPos.getX() >> 4, blockPos.getZ() >> 4, ChunkStatus.FULL, false);
-        if (chunk == null) {
-            return false;
-        }
-
-        BlockState state = chunk.getBlockState(blockPos);
-        VoxelShape shape = state.getCollisionShape(world, blockPos, EntityContext.of(entity));
+    /**
+     * Replaces the original `isTopSolid` check with the appropriate logic.
+     *
+     * @param world The world.
+     * @param blockPos The BlockPos.
+     * @param entity The shulker.
+     *
+     * @return true if the block is attachable; otherwise, false.
+     */
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;isTopSolid(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;)Z", ordinal = 0))
+    protected boolean isFirstBlockAttachableOnTick(World world, BlockPos blockPos, Entity entity) {
         Direction direction = ((DirectionalBlockPos)blockPos).getDirection();
-        return Block.isFaceFullSquare(shape, direction);
+        return isBlockAttachable(blockPos.offset(direction.getOpposite()), direction);
+    }
+
+    /**
+     * Same as `isFirstBlockAttachableOnTick`.
+     */
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;isTopSolid(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;)Z", ordinal = 1))
+    protected boolean isSecondBlockAttachableOnTick(World world, BlockPos blockPos, Entity entity) {
+        Direction direction = ((DirectionalBlockPos)blockPos).getDirection();
+        return isBlockAttachable(blockPos.offset(direction.getOpposite()), direction);
+    }
+
+    /**
+     * The third check that the block is a valid attachment point is useless.
+     */
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;isTopSolid(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;)Z", ordinal = 2))
+    protected boolean discardThirdIsBlockAttachableCheckOnTick(World world, BlockPos pos, Entity entity) {
+        return false;
+    }
+
+    /**
+     * Same as `isFirstBlockAttachableOnTick`.
+     */
+    @Redirect(method = "method_7127", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;isTopSolid(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;)Z"))
+    protected boolean isBlockAttachableOnTeleport(World world, BlockPos blockPos, Entity entity) {
+        Direction direction = ((DirectionalBlockPos)blockPos).getDirection();
+        return isBlockAttachable(blockPos.offset(direction.getOpposite()), direction);
+    }
+
+    /**
+     * Returns true if the block is empty; otherwise, false.
+     *
+     * @param pos The position to check.
+     * @return true if the block is empty; otherwise, false.
+     */
+    private boolean isBlockEmpty(BlockPos pos) {
+        BlockState blockState = this.world.getBlockState(pos);
+        return blockState.isAir() || (blockState.getBlock() == Blocks.MOVING_PISTON && pos.equals(this.getBlockPos()));
+    }
+
+    /**
+     * Creates intersection box of the shulker.
+     *
+     * @param direction The side to which the shulker opens.
+     * @param prevOffset Shulker's opening progress on the previous step.
+     * @param offset Shulker's opening progress.
+     *
+     * @return An intersection box of the shulker.
+     */
+    private static Box createIntersectionBox(Direction direction, float prevOffset, float offset) {
+        double max = Math.max(prevOffset, offset);
+        double min = Math.min(prevOffset, offset);
+        Box testBox = new Box(BlockPos.ORIGIN);
+        return testBox.stretch(
+            direction.getOffsetX() * max,
+            direction.getOffsetY() * max,
+            direction.getOffsetZ() * max
+        ).shrink(
+            -direction.getOffsetX() * (1.0D + min),
+            -direction.getOffsetY() * (1.0D + min),
+            -direction.getOffsetZ() * (1.0D + min)
+        );
+    }
+
+    /**
+     * Returns true if the given block is attachable; otherwise, false.
+     *
+     * @param pos The position to check.
+     * @param direction The direction to check.
+     * @return true if the given block is attachable; otherwise, false.
+     */
+    private boolean isBlockAttachable(BlockPos pos, Direction direction) {
+        if (this.isBlockEmpty(pos)) {
+            Direction opposite = direction.getOpposite();
+            if (WorldHelper.isDirectionSolid(this.world, pos.offset(direction), this, opposite)) {
+                Box box = createIntersectionBox(opposite, -1.0F, 1.0F).offset(pos).contract(1.0E-6D);
+                return WorldHelper.isSpaceEmpty(this.world, this, box);
+            }
+        }
+
+        return false;
     }
 
     /**
