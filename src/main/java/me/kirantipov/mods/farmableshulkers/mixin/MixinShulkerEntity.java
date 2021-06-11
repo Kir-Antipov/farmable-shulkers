@@ -1,6 +1,8 @@
 package me.kirantipov.mods.farmableshulkers.mixin;
 
 import me.kirantipov.mods.farmableshulkers.entity.ColorableEntity;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.damage.DamageSource;
@@ -10,6 +12,7 @@ import net.minecraft.entity.passive.GolemEntity;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Final;
@@ -43,6 +46,12 @@ public abstract class MixinShulkerEntity extends GolemEntity implements Colorabl
     @Shadow
     protected static TrackedData<Optional<BlockPos>> ATTACHED_BLOCK;
 
+
+    protected MixinShulkerEntity(EntityType<? extends GolemEntity> entityType, World world) {
+        super(entityType, world);
+    }
+
+
     /**
      * Attempts to teleport the shulker to a random location.
      *
@@ -74,11 +83,72 @@ public abstract class MixinShulkerEntity extends GolemEntity implements Colorabl
         this.dataTracker.set(COLOR, (byte)color.getId());
     }
 
-
-    protected MixinShulkerEntity(EntityType<? extends GolemEntity> entityType, World world) {
-        super(entityType, world);
+    /**
+     * Returns true if the block is empty; otherwise, false.
+     *
+     * @param pos The position to check.
+     * @return true if the block is empty; otherwise, false.
+     */
+    private boolean isBlockEmpty(BlockPos pos) {
+        BlockState blockState = this.world.getBlockState(pos);
+        return blockState.isAir() || (blockState.isOf(Blocks.MOVING_PISTON) && pos.equals(this.getBlockPos()));
     }
 
+    /**
+     * Creates intersection box of the shulker.
+     *
+     * @param direction The side to which the shulker opens.
+     * @param prevOffset Shulker's opening progress on the previous step.
+     * @param offset Shulker's opening progress.
+     *
+     * @return An intersection box of the shulker.
+     */
+    private static Box createIntersectionBox(Direction direction, float prevOffset, float offset) {
+        double max = Math.max(prevOffset, offset);
+        double min = Math.min(prevOffset, offset);
+        Box testBox = new Box(BlockPos.ORIGIN);
+        return testBox.stretch(
+            direction.getOffsetX() * max,
+            direction.getOffsetY() * max,
+            direction.getOffsetZ() * max
+        ).shrink(
+            -direction.getOffsetX() * (1.0D + min),
+            -direction.getOffsetY() * (1.0D + min),
+            -direction.getOffsetZ() * (1.0D + min)
+        );
+    }
+
+    /**
+     * Returns true if the given block is attachable; otherwise, false.
+     *
+     * @param pos The position to check.
+     * @param direction The direction to check.
+     * @return true if the given block is attachable; otherwise, false.
+     */
+    private boolean isBlockAttachable(BlockPos pos, Direction direction) {
+        if (this.isBlockEmpty(pos)) {
+            Direction opposite = direction.getOpposite();
+            if (this.world.isDirectionSolid(pos.offset(direction), this, opposite)) {
+                Box box = createIntersectionBox(opposite, -1.0F, 1.0F).offset(pos).contract(1.0E-6D);
+                return this.world.isSpaceEmpty(this, box);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Overrides the logic by which the shulker determines
+     * whether it can use a block as an anchorage position.
+     *
+     * @param pos The position to check.
+     * @param direction The direction to check.
+     * @param cir The callback info.
+     */
+    @Inject(method = "canStay", at = @At("HEAD"), cancellable = true)
+    private void isBlockAttachable(BlockPos pos, Direction direction, CallbackInfoReturnable<Boolean> cir) {
+        cir.setReturnValue(isBlockAttachable(pos, direction));
+    }
 
     /**
      * We already have a property that reflects a position of the entity.
