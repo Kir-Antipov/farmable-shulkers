@@ -50,6 +50,8 @@ When something seems impossible to you, know that SciCraft members have already 
  1. [Fully Automatic Shulker Shell Farm 20w45a, ilmango](https://www.youtube.com/watch?v=8RqWiEJuauQ) *(initial design, exploits a bug with incorrect teleportation of shulkers to the Nether. However, the video still has value as a brief explanation of the idea itself)*
  2. [Building the Reliable Shulker Farm for 1.17, cubicmetre](https://www.youtube.com/watch?v=owoS_bgOIhQ&t=637s) *(good to go bug-free design)*
 
+Note: cubicmetre's overworld box containing replacement shulkers is within the range of the shulkers' teleportation abilities, so in some edge cases they can teleport to its walls or roof. Just remove this box or expand it, and you're good to go!
+
 ## Installation
 
 Requirements:
