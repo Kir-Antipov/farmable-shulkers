@@ -21,4 +21,20 @@ public class DirectionalBlockPos extends BlockPos {
     public Direction getDirection() {
         return this.direction;
     }
+
+    /**
+     * Preserves the direction of the BlockPos offset for future use.
+     *
+     * @param pos Initial position.
+     * @param offsetDirection The offset direction.
+     *
+     * @return Offset position.
+     */
+    public static DirectionalBlockPos offset(BlockPos pos, Direction offsetDirection) {
+        int dX = offsetDirection.getOffsetX();
+        int dY = offsetDirection.getOffsetY();
+        int dZ = offsetDirection.getOffsetZ();
+        
+        return new DirectionalBlockPos(pos.getX() + dX, pos.getY() + dY, pos.getZ() + dZ, offsetDirection);
+    }
 }
